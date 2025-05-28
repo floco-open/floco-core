@@ -16,6 +16,7 @@ from app.routes import emergency_break
 from app.routes import judgment_router
 from app.routes import judgment_rewrite
 from app.routes import verbal_style
+from app.routes import verbal_beat
 
 app = FastAPI()
 
@@ -40,3 +41,4 @@ app.include_router(emergency_break.router)
 app.include_router(judgment_router.router)
 app.include_router(judgment_rewrite.router)
 app.include_router(verbal_style.router)
+app.include_router(verbal_beat.router)
