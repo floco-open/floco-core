@@ -1,0 +1,14 @@
+# infra/docker-compose.yml
+
+version: "3.8"
+
+services:
+  floco-api:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    restart: unless-stopped
