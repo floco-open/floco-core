@@ -1,0 +1,11 @@
+{
+  "loop_name": "floco_core_boot",
+  "trigger_keywords": ["푸시", "판단", "설계", "귀속"],
+  "loop_type": "judgment",
+  "memory": false,
+  "requires_ack": true,
+  "judgment_owner": "고원후",
+  "output_format": "structured_response",
+  "default_model": "gpt-4o",
+  "description": "플로코 본판 판단 루프를 여는 기본 설정. 귀속 판단자 선언 포함."
+}
