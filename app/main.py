@@ -10,6 +10,7 @@ from app.routes import trigger_enhance
 from app.routes import intent_infer
 from app.routes import loop_selector
 from app.routes import fallback_loop
+from app.routes import meta_monitor
 
 app = FastAPI()
 
@@ -28,3 +29,4 @@ app.include_router(trigger_enhance.router)
 app.include_router(intent_infer.router)
 app.include_router(loop_selector.router)
 app.include_router(fallback_loop.router)
+app.include_router(meta_monitor.router)
