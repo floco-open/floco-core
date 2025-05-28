@@ -18,6 +18,7 @@ from app.routes import judgment_rewrite
 from app.routes import verbal_style
 from app.routes import verbal_beat
 from app.routes import verbal_guard
+from app.routes import verbal_trigger
 
 app = FastAPI()
 
@@ -44,3 +45,4 @@ app.include_router(judgment_rewrite.router)
 app.include_router(verbal_style.router)
 app.include_router(verbal_beat.router)
 app.include_router(verbal_guard.router)
+app.include_router(verbal_trigger.router)
