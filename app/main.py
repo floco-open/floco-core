@@ -7,6 +7,7 @@ from app.routes import meta
 from app.routes import feedback
 from app.routes import status
 from app.routes import trigger_enhance
+from app.routes import intent_infer
 
 app = FastAPI()
 
@@ -22,3 +23,4 @@ app.include_router(meta.router)
 app.include_router(feedback.router)
 app.include_router(status.router)
 app.include_router(trigger_enhance.router)
+app.include_router(intent_infer.router)
