@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from judgment_loop.memoryless_core import handle_input
 from app.routes import meta
 from app.routes import feedback
+from app.routes import status
 
 app = FastAPI()
 
@@ -18,3 +19,4 @@ async def judgment(data: InputData):
 
 app.include_router(meta.router)
 app.include_router(feedback.router)
+app.include_router(status.router)
