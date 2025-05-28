@@ -13,6 +13,7 @@ from app.routes import fallback_loop
 from app.routes import meta_monitor
 from app.routes import reinforcement_hook
 from app.routes import emergency_break
+from app.routes import judgment_router
 
 app = FastAPI()
 
@@ -34,3 +35,4 @@ app.include_router(fallback_loop.router)
 app.include_router(meta_monitor.router)
 app.include_router(reinforcement_hook.router)
 app.include_router(emergency_break.router)
+app.include_router(judgment_router.router)
