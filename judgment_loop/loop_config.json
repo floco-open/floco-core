@@ -1,7 +1,7 @@
 {
   "loop_name": "floco_core_boot",
   "trigger_keywords": ["푸시", "판단", "설계", "귀속"],
-  "transfer_keywords": ["이관", "방제", "넘어가자"],
+  "transfer_keywords": ["이관", "방제", "넘어가자", "transfer", "bridge", "migrate"],
   "loop_type": "judgment",
   "memory": false,
   "requires_ack": true,
@@ -71,7 +71,7 @@
   
   "model_switching": {
     "enabled": true,
-    "switch_keywords": ["모델변경", "switch", "change_model"],
+    "switch_keywords": ["모델변경", "switch", "change_model", "use_model", "모델바꿔", "바꿔"],
     "available_models": ["claude", "gpt4", "gpt4o", "gpt35", "gemini", "llama2", "llama3", "mistral", "cohere"]
   },
   
