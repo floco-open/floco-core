@@ -8,4 +8,8 @@
   "output_format": "structured_response",
   "default_model": "gpt-4o",
   "description": "플로코 본판 판단 루프를 여는 기본 설정. 귀속 판단자 선언 포함."
+  // 기존 것들은 그대로 +
+  "transfer_keywords": ["이관", "방제", "넘어가자"],
+  "transfer_enabled": true,
+  "bridge_format": "context_summary"
 }
