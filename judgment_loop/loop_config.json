@@ -1,15 +1,79 @@
 {
   "loop_name": "floco_core_boot",
   "trigger_keywords": ["푸시", "판단", "설계", "귀속"],
+  "transfer_keywords": ["이관", "방제", "넘어가자"],
   "loop_type": "judgment",
   "memory": false,
   "requires_ack": true,
   "judgment_owner": "고원후",
   "output_format": "structured_response",
-  "default_model": "gpt-4o",
-  "description": "플로코 본판 판단 루프를 여는 기본 설정. 귀속 판단자 선언 포함."
-  // 기존 것들은 그대로 +
-  "transfer_keywords": ["이관", "방제", "넘어가자"],
   "transfer_enabled": true,
-  "bridge_format": "context_summary"
+  "bridge_format": "context_summary",
+  "description": "플로코 본판 판단 루프를 여는 기본 설정. 귀속 판단자 선언 포함.",
+  
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o"
+  },
+  
+  "model_options": {
+    "claude": {
+      "provider": "claude",
+      "model": "claude-3-sonnet-20240229",
+      "api_key_env": "ANTHROPIC_API_KEY"
+    },
+    "gpt4": {
+      "provider": "openai", 
+      "model": "gpt-4",
+      "api_key_env": "OPENAI_API_KEY"
+    },
+    "gpt4o": {
+      "provider": "openai",
+      "model": "gpt-4o", 
+      "api_key_env": "OPENAI_API_KEY"
+    },
+    "gpt35": {
+      "provider": "openai",
+      "model": "gpt-3.5-turbo",
+      "api_key_env": "OPENAI_API_KEY"
+    },
+    "gemini": {
+      "provider": "gemini",
+      "model": "gemini-pro",
+      "api_key_env": "GEMINI_API_KEY"
+    },
+    "llama2": {
+      "provider": "ollama",
+      "model": "llama2",
+      "url_env": "OLLAMA_URL"
+    },
+    "llama3": {
+      "provider": "ollama", 
+      "model": "llama3",
+      "url_env": "OLLAMA_URL"
+    },
+    "mistral": {
+      "provider": "ollama",
+      "model": "mistral",
+      "url_env": "OLLAMA_URL"
+    },
+    "cohere": {
+      "provider": "cohere",
+      "model": "command",
+      "api_key_env": "COHERE_API_KEY"
+    },
+    "huggingface": {
+      "provider": "huggingface",
+      "model": "microsoft/DialoGPT-medium",
+      "api_key_env": "HUGGINGFACE_API_KEY"
+    }
+  },
+  
+  "model_switching": {
+    "enabled": true,
+    "switch_keywords": ["모델변경", "switch", "change_model"],
+    "available_models": ["claude", "gpt4", "gpt4o", "gpt35", "gemini", "llama2", "llama3", "mistral", "cohere"]
+  },
+  
+  "fallback_order": ["gpt4o", "claude", "gpt4", "gemini", "llama2"]
 }

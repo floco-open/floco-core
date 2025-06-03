@@ -3,6 +3,9 @@
 import json
 import os
 import anthropic
+import openai
+import requests
+from typing import Optional
 
 def load_loop_config(path="judgment_loop/loop_config.json"):
     with open(path, 'r', encoding='utf-8') as f:
@@ -24,6 +27,7 @@ def is_transfer_triggered(user_input, config):
     return False
 
 def call_claude(prompt: str) -> str:
+    """Anthropic Claude API 호출"""
     try:
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         response = client.messages.create(
@@ -37,6 +41,99 @@ def call_claude(prompt: str) -> str:
     except Exception as e:
         return f"[ERROR] Claude 호출 실패: {str(e)}"
 
+def call_openai(prompt: str, model: str = "gpt-4") -> str:
+    """OpenAI GPT API 호출"""
+    try:
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": "당신은 FLOCO 판단 루프의 판단 생성기입니다."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=300,
+            temperature=0.7
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"[ERROR] OpenAI 호출 실패: {str(e)}"
+
+def call_gemini(prompt: str) -> str:
+    """Google Gemini API 호출"""
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        model = genai.GenerativeModel('gemini-pro')
+        response = model.generate_content(
+            f"당신은 FLOCO 판단 루프의 판단 생성기입니다.\n\n{prompt}"
+        )
+        return response.text
+    except Exception as e:
+        return f"[ERROR] Gemini 호출 실패: {str(e)}"
+
+def call_ollama(prompt: str, model: str = "llama2") -> str:
+    """Ollama 로컬 모델 호출"""
+    try:
+        url = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
+        data = {
+            "model": model,
+            "prompt": f"당신은 FLOCO 판단 루프의 판단 생성기입니다.\n\n{prompt}",
+            "stream": False
+        }
+        response = requests.post(url, json=data)
+        return response.json()["response"]
+    except Exception as e:
+        return f"[ERROR] Ollama 호출 실패: {str(e)}"
+
+def call_cohere(prompt: str) -> str:
+    """Cohere API 호출"""
+    try:
+        import cohere
+        co = cohere.Client(os.getenv("COHERE_API_KEY"))
+        response = co.generate(
+            model='command',
+            prompt=f"당신은 FLOCO 판단 루프의 판단 생성기입니다.\n\n{prompt}",
+            max_tokens=300,
+            temperature=0.7
+        )
+        return response.generations[0].text
+    except Exception as e:
+        return f"[ERROR] Cohere 호출 실패: {str(e)}"
+
+def call_huggingface(prompt: str, model: str = "microsoft/DialoGPT-medium") -> str:
+    """HuggingFace API 호출"""
+    try:
+        from transformers import pipeline
+        generator = pipeline('text-generation', model=model)
+        response = generator(
+            f"당신은 FLOCO 판단 루프의 판단 생성기입니다.\n\n{prompt}",
+            max_length=300,
+            num_return_sequences=1
+        )
+        return response[0]['generated_text']
+    except Exception as e:
+        return f"[ERROR] HuggingFace 호출 실패: {str(e)}"
+
+def call_ai_model(prompt: str, model_config: dict) -> str:
+    """통합 AI 모델 호출 함수"""
+    provider = model_config.get("provider", "claude").lower()
+    model_name = model_config.get("model", "")
+    
+    if provider == "claude" or provider == "anthropic":
+        return call_claude(prompt)
+    elif provider == "openai" or provider == "gpt":
+        return call_openai(prompt, model_name or "gpt-4")
+    elif provider == "gemini" or provider == "google":
+        return call_gemini(prompt)
+    elif provider == "ollama":
+        return call_ollama(prompt, model_name or "llama2")
+    elif provider == "cohere":
+        return call_cohere(prompt)
+    elif provider == "huggingface" or provider == "hf":
+        return call_huggingface(prompt, model_name)
+    else:
+        return f"[ERROR] 지원하지 않는 모델 제공자: {provider}"
+
 def handle_transfer(current_context, config):
     """이관 요청 처리 및 브릿지 데이터 생성"""
     prompt = f"""[FLOCO 이관 시스템]
@@ -48,13 +145,15 @@ def handle_transfer(current_context, config):
 현재 세션의 컨텍스트를 다음 Claude 세션으로 전달하기 위한 요약을 생성해주세요.
 핵심 판단 사항과 연속성이 필요한 내용만 간결하게 정리해주세요."""
 
-    bridge_summary = call_claude(prompt)
+    model_config = config.get("model", {"provider": "claude"})
+    bridge_summary = call_ai_model(prompt, model_config)
     
     return f"""[FLOCO 이관 시스템 활성화]
 
 🔄 **세션 브릿지 생성 완료**
 - 루프: {config['loop_name']}
 - 판단자: {config['judgment_owner']}
+- 모델: {model_config.get('provider', 'claude')}
 - 이관 요청: "{current_context}"
 
 📦 **다음 Claude에게 전달할 컨텍스트**:
@@ -74,7 +173,7 @@ def handle_input(user_input):
     if not is_triggered(user_input, config):
         return "[FLOCO] 루프 미개방: 트리거 조건 미충족"
 
-    # 실제 Claude 판단 실행
+    # 실제 AI 모델 판단 실행
     prompt = f"""[FLOCO 판단 루프]
 - 루프 이름: {config['loop_name']}
 - 판단자: {config['judgment_owner']}
@@ -82,19 +181,22 @@ def handle_input(user_input):
 
 위 입력에 대해 FLOCO 구조에 따른 판단을 제공해주세요."""
 
-    claude_response = call_claude(prompt)
+    model_config = config.get("model", {"provider": "claude"})
+    ai_response = call_ai_model(prompt, model_config)
     
     return f"""[FLOCO 판단 루프 개방됨]
 
 - 루프 이름: {config['loop_name']}
 - 판단자: {config['judgment_owner']}
+- 모델: {model_config.get('provider', 'claude')} ({model_config.get('model', 'default')})
 - 입력: "{user_input}"
-- 판단 결과: {claude_response}
+- 판단 결과: {ai_response}
 
 (무기억 루프: 과거 발화는 저장되지 않습니다)"""
 
 # CLI 테스트용
 if __name__ == "__main__":
+    print("[FLOCO Universal Core] 지원 모델: Claude, GPT, Gemini, Ollama, Cohere, HuggingFace")
     while True:
         user_input = input("입력: ")
         if user_input.lower() in ["exit", "quit"]:
