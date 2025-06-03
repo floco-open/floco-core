@@ -26,6 +26,32 @@ def is_transfer_triggered(user_input, config):
             return True
     return False
 
+def is_model_switch_triggered(user_input, config):
+    """모델 변경 키워드 감지"""
+    if not config.get("model_switching", {}).get("enabled", False):
+        return False, None
+    
+    switch_keywords = config.get("model_switching", {}).get("switch_keywords", [])
+    available_models = config.get("model_switching", {}).get("available_models", [])
+    
+    for keyword in switch_keywords:
+        if keyword in user_input:
+            # 키워드 뒤의 모델명 추출
+            parts = user_input.split(keyword)
+            if len(parts) > 1:
+                target_model = parts[1].strip()
+                if target_model in available_models:
+                    return True, target_model
+    return False, None
+
+def switch_model(config, target_model):
+    """모델 변경 (메모리에서만)"""
+    if target_model in config.get("model_options", {}):
+        new_model_config = config["model_options"][target_model]
+        config["model"] = new_model_config
+        return True
+    return False
+
 def call_claude(prompt: str) -> str:
     """Anthropic Claude API 호출"""
     try:
@@ -166,7 +192,22 @@ def handle_transfer(current_context, config):
 def handle_input(user_input):
     config = load_loop_config()
     
-    # 이관 요청 우선 확인
+    # 모델 변경 요청 우선 확인
+    is_switch, target_model = is_model_switch_triggered(user_input, config)
+    if is_switch:
+        if switch_model(config, target_model):
+            model_info = config["model_options"][target_model]
+            return f"""[FLOCO 모델 변경 완료]
+
+- 변경된 모델: {model_info.get('provider', 'unknown')} ({model_info.get('model', 'default')})
+- 루프: {config['loop_name']}
+- 판단자: {config['judgment_owner']}
+
+(현재 세션에서만 적용됩니다. 영구 변경은 loop_config.json을 수정하세요)"""
+        else:
+            return "[FLOCO] 모델 변경 실패: 지원하지 않는 모델"
+    
+    # 이관 요청 확인
     if is_transfer_triggered(user_input, config):
         return handle_transfer(user_input, config)
     
@@ -182,13 +223,34 @@ def handle_input(user_input):
 위 입력에 대해 FLOCO 구조에 따른 판단을 제공해주세요."""
 
     model_config = config.get("model", {"provider": "claude"})
+    
+    # Fallback 시스템 적용
+    fallback_order = config.get("fallback_order", [])
+    ai_response = None
+    used_model = None
+    
+    # 현재 모델 시도
     ai_response = call_ai_model(prompt, model_config)
+    if not ai_response.startswith("[ERROR]"):
+        used_model = f"{model_config.get('provider', 'unknown')} ({model_config.get('model', 'default')})"
+    else:
+        # Fallback 모델들 시도
+        for fallback_model in fallback_order:
+            if fallback_model in config.get("model_options", {}):
+                fallback_config = config["model_options"][fallback_model]
+                ai_response = call_ai_model(prompt, fallback_config)
+                if not ai_response.startswith("[ERROR]"):
+                    used_model = f"{fallback_config.get('provider', 'unknown')} ({fallback_config.get('model', 'default')}) [FALLBACK]"
+                    break
+    
+    if used_model is None:
+        used_model = "ERROR - All models failed"
     
     return f"""[FLOCO 판단 루프 개방됨]
 
 - 루프 이름: {config['loop_name']}
 - 판단자: {config['judgment_owner']}
-- 모델: {model_config.get('provider', 'claude')} ({model_config.get('model', 'default')})
+- 모델: {used_model}
 - 입력: "{user_input}"
 - 판단 결과: {ai_response}
 
@@ -196,7 +258,8 @@ def handle_input(user_input):
 
 # CLI 테스트용
 if __name__ == "__main__":
-    print("[FLOCO Universal Core] 지원 모델: Claude, GPT, Gemini, Ollama, Cohere, HuggingFace")
+    print("[FLOCO Universal Core with Transfer System] 지원 모델: Claude, GPT, Gemini, Ollama, Cohere, HuggingFace")
+    print("특별 기능: 이관 시스템, 런타임 모델 스위칭, 자동 폴백")
     while True:
         user_input = input("입력: ")
         if user_input.lower() in ["exit", "quit"]:
