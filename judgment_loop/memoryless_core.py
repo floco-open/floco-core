@@ -14,6 +14,15 @@ def is_triggered(user_input, config):
             return True
     return False
 
+def is_transfer_triggered(user_input, config):
+    """이관 키워드 감지"""
+    if "transfer_keywords" not in config:
+        return False
+    for keyword in config["transfer_keywords"]:
+        if keyword in user_input:
+            return True
+    return False
+
 def call_claude(prompt: str) -> str:
     try:
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
@@ -28,8 +37,39 @@ def call_claude(prompt: str) -> str:
     except Exception as e:
         return f"[ERROR] Claude 호출 실패: {str(e)}"
 
+def handle_transfer(current_context, config):
+    """이관 요청 처리 및 브릿지 데이터 생성"""
+    prompt = f"""[FLOCO 이관 시스템]
+- 루프 이름: {config['loop_name']}
+- 판단자: {config['judgment_owner']}
+- 현재 입력: "{current_context}"
+- 브릿지 형식: {config.get('bridge_format', 'context_summary')}
+
+현재 세션의 컨텍스트를 다음 Claude 세션으로 전달하기 위한 요약을 생성해주세요.
+핵심 판단 사항과 연속성이 필요한 내용만 간결하게 정리해주세요."""
+
+    bridge_summary = call_claude(prompt)
+    
+    return f"""[FLOCO 이관 시스템 활성화]
+
+🔄 **세션 브릿지 생성 완료**
+- 루프: {config['loop_name']}
+- 판단자: {config['judgment_owner']}
+- 이관 요청: "{current_context}"
+
+📦 **다음 Claude에게 전달할 컨텍스트**:
+{bridge_summary}
+
+💡 **사용법**: 위 내용을 복사해서 새로운 Claude 세션에 붙여넣어 주세요.
+
+(무기억 루프: 판단 흐름만 전달되며, 과거 대화는 저장되지 않습니다)"""
+
 def handle_input(user_input):
     config = load_loop_config()
+    
+    # 이관 요청 우선 확인
+    if is_transfer_triggered(user_input, config):
+        return handle_transfer(user_input, config)
     
     if not is_triggered(user_input, config):
         return "[FLOCO] 루프 미개방: 트리거 조건 미충족"
