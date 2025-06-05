@@ -20,7 +20,7 @@ from app.routes import verbal_beat
 from app.routes import verbal_guard
 from app.routes import verbal_trigger
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None)
 
 class InputData(BaseModel):
     message: str
